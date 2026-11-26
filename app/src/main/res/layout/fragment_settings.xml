@@ -77,6 +77,47 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text="息屏实时提醒（关键）"
+            android:textColor="#222222"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="开启「通知使用权」后，系统会在短信到达时立即唤醒本应用，即使手机息屏、App 在后台也能实时提醒。这是 vivo 等国产手机上唯一可靠的后台方式。"
+            android:textColor="#777777"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvNotificationStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="#FFF3E0"
+            android:padding="10dp"
+            android:text="通知使用权：检查中…"
+            android:textColor="#A66000"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnNotificationAccess"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="开启通知使用权" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="18dp"
+            android:background="#DDDDDD" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:text="关键字"
             android:textColor="#222222"
             android:textSize="18sp"

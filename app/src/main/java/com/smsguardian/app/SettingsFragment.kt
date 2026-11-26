@@ -34,6 +34,7 @@ class SettingsFragment : Fragment() {
 
     private lateinit var prefs: Prefs
     private lateinit var tvServiceStatus: TextView
+    private lateinit var tvNotificationStatus: TextView
     private lateinit var tvDiagnostics: TextView
     private lateinit var etKeyword: EditText
     private lateinit var keywordContainer: LinearLayout
@@ -52,6 +53,7 @@ class SettingsFragment : Fragment() {
         prefs = Prefs(requireContext())
 
         tvServiceStatus = view.findViewById(R.id.tvServiceStatus)
+        tvNotificationStatus = view.findViewById(R.id.tvNotificationStatus)
         tvDiagnostics = view.findViewById(R.id.tvDiagnostics)
         etKeyword = view.findViewById(R.id.etKeyword)
         keywordContainer = view.findViewById(R.id.keywordContainer)
@@ -134,6 +136,11 @@ class SettingsFragment : Fragment() {
             view.postDelayed({ refreshStatus() }, 1000)
         }
 
+        view.findViewById<Button>(R.id.btnNotificationAccess).setOnClickListener {
+            SmsNotificationListener.openSettings(requireContext())
+            toast("请在列表中找到「短信守卫」并打开开关")
+        }
+
         view.findViewById<Button>(R.id.btnPermission).setOnClickListener { openAppDetails() }
 
         view.findViewById<Button>(R.id.btnBattery).setOnClickListener { requestIgnoreBatteryOptimizations() }
@@ -150,12 +157,15 @@ class SettingsFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        // 从授权页返回后，若已开启则请求系统重新绑定，让通知监听立即生效
+        SmsNotificationListener.requestRebindIfNeeded(requireContext())
         if (::tvServiceStatus.isInitialized) refreshStatus()
     }
 
-    /** 同时刷新服务状态与诊断信息 */
+    /** 同时刷新服务状态、通知使用权状态与诊断信息 */
     private fun refreshStatus() {
         updateServiceStatus()
+        updateNotificationStatus()
         val count = prefs.detectedCount
         val time = prefs.lastDetectTime
         val timeText = if (time <= 0) "从未" else
@@ -168,6 +178,23 @@ class SettingsFragment : Fragment() {
                 append("最后一条：${prefs.lastDetectPreview}")
             }
         }
+    }
+
+    /** 显示通知使用权授权状态 */
+    private fun updateNotificationStatus() {
+        if (!::tvNotificationStatus.isInitialized) return
+        val enabled = SmsNotificationListener.isEnabled(requireContext())
+        tvNotificationStatus.text = if (enabled) {
+            "通知使用权：已开启 ✓ 息屏也能实时提醒"
+        } else {
+            "通知使用权：未开启 ✗ 息屏将无法及时提醒（点下方按钮开启）"
+        }
+        tvNotificationStatus.setTextColor(
+            Color.parseColor(if (enabled) "#2E7D32" else "#A66000")
+        )
+        tvNotificationStatus.setBackgroundColor(
+            Color.parseColor(if (enabled) "#E8F5E9" else "#FFF3E0")
+        )
     }
 
     private fun renderKeywords() {

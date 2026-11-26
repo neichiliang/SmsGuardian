@@ -17,7 +17,9 @@ import java.util.Locale
 object SmsProcessor {
 
     private const val TAG = "SmsProcessor"
-    private const val DEDUP_WINDOW_MS = 8_000L
+    // 广播/通知/轮询三条路径的时间戳来源不同，不能纳入去重键；
+    // 用「发件人+正文」做指纹，窗口放大到 30 秒，确保同一条短信只提醒一次。
+    private const val DEDUP_WINDOW_MS = 30_000L
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /**
@@ -28,8 +30,8 @@ object SmsProcessor {
         if (body.isBlank()) return
         val prefs = Prefs(context)
 
-        // 去重：广播与轮询可能都拿到同一条短信，8 秒内相同内容只处理一次
-        val fingerprint = "$address|$body|$dateMillis"
+        // 去重：广播/通知/轮询三条路径可能都拿到同一条短信，相同发件人+正文只处理一次
+        val fingerprint = "$address|$body"
         val now = System.currentTimeMillis()
         if (fingerprint == prefs.lastFingerprint && now - prefs.lastFingerprintTime < DEDUP_WINDOW_MS) {
             Log.d(TAG, "重复短信，跳过（来源=$source）")
