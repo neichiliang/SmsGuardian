@@ -3,7 +3,6 @@ package com.smsguardian.app
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.provider.Telephony
 import android.telephony.SmsMessage
 import android.util.Log
@@ -30,10 +29,10 @@ class SmsReceiver : BroadcastReceiver() {
         // 多条短信（长短信分片）按发件人+时间合并
         messages.groupBy { "${it.originatingAddress}|${it.timestampMillis}" }
             .forEach { (_, parts) ->
-                val sorted = parts.sortedBy { it.messageNumber }
-                val body = sorted.joinToString("") { it.messageBody ?: "" }
-                val address = sorted.first().originatingAddress ?: ""
-                val timestamp = sorted.first().timestampMillis
+                // PDU 数组本身即长短信分片的正确顺序，直接拼接
+                val body = parts.joinToString("") { it.messageBody ?: "" }
+                val address = parts.first().originatingAddress ?: ""
+                val timestamp = parts.first().timestampMillis
                 SmsProcessor.process(
                     context = context.applicationContext,
                     address = address,
@@ -45,18 +44,14 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     private fun extractMessages(intent: Intent): List<SmsMessage> {
-        val pdus = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getSerializableExtra("pdus", Array<ByteArray>::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            intent.getSerializableExtra("pdus") as? Array<ByteArray>
-        } ?: return emptyList()
-
+        // 系统传入的 pdus 是 Object[]，元素为 byte[]；用通用写法兼容所有 Android 版本
+        val pdus = intent.extras?.get("pdus") as? Array<*> ?: return emptyList()
         val format = intent.getStringExtra("format")
         return pdus.mapNotNull { pdu ->
+            val bytes = pdu as? ByteArray ?: return@mapNotNull null
             try {
-                if (format != null) SmsMessage.createFromPdu(pdu, format)
-                else @Suppress("DEPRECATION") SmsMessage.createFromPdu(pdu)
+                if (format != null) SmsMessage.createFromPdu(bytes, format)
+                else @Suppress("DEPRECATION") SmsMessage.createFromPdu(bytes)
             } catch (e: Exception) {
                 Log.w(TAG, "解析短信 PDU 失败：${e.message}")
                 null
