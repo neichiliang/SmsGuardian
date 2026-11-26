@@ -26,11 +26,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class SettingsFragment : Fragment() {
 
     private lateinit var prefs: Prefs
     private lateinit var tvServiceStatus: TextView
+    private lateinit var tvDiagnostics: TextView
     private lateinit var etKeyword: EditText
     private lateinit var keywordContainer: LinearLayout
     private lateinit var etSendKey: EditText
@@ -48,6 +52,7 @@ class SettingsFragment : Fragment() {
         prefs = Prefs(requireContext())
 
         tvServiceStatus = view.findViewById(R.id.tvServiceStatus)
+        tvDiagnostics = view.findViewById(R.id.tvDiagnostics)
         etKeyword = view.findViewById(R.id.etKeyword)
         keywordContainer = view.findViewById(R.id.keywordContainer)
         etSendKey = view.findViewById(R.id.etSendKey)
@@ -112,7 +117,21 @@ class SettingsFragment : Fragment() {
                 SmsMonitorService.start(requireContext())
                 toast("已启动监控")
             }
-            updateServiceStatus()
+            // 服务停止是异步的，延迟刷新状态，避免按钮点了还显示"运行中"
+            view.postDelayed({ refreshStatus() }, 600)
+        }
+
+        view.findViewById<Button>(R.id.btnCheckNow).setOnClickListener {
+            if (ContextCompat.checkSelfPermission(
+                    requireContext(), Manifest.permission.READ_SMS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                toast("请先授予短信权限")
+                return@setOnClickListener
+            }
+            SmsMonitorService.checkNow(requireContext())
+            toast("已触发检测，1 秒后刷新诊断")
+            view.postDelayed({ refreshStatus() }, 1000)
         }
 
         view.findViewById<Button>(R.id.btnPermission).setOnClickListener { openAppDetails() }
@@ -125,13 +144,30 @@ class SettingsFragment : Fragment() {
         }
 
         renderKeywords()
-        updateServiceStatus()
+        refreshStatus()
         return view
     }
 
     override fun onResume() {
         super.onResume()
-        if (::tvServiceStatus.isInitialized) updateServiceStatus()
+        if (::tvServiceStatus.isInitialized) refreshStatus()
+    }
+
+    /** 同时刷新服务状态与诊断信息 */
+    private fun refreshStatus() {
+        updateServiceStatus()
+        val count = prefs.detectedCount
+        val time = prefs.lastDetectTime
+        val timeText = if (time <= 0) "从未" else
+            SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault()).format(Date(time))
+        tvDiagnostics.text = buildString {
+            append("已检测到新短信：$count 条\n")
+            append("最近检测时间：$timeText\n")
+            append("检测结果：${prefs.lastDetectResult}\n")
+            if (prefs.lastDetectPreview.isNotBlank()) {
+                append("最后一条：${prefs.lastDetectPreview}")
+            }
+        }
     }
 
     private fun renderKeywords() {

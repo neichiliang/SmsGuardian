@@ -50,6 +50,24 @@
                 android:text="短信权限设置" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/tvDiagnostics"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="#F2F2F2"
+            android:padding="12dp"
+            android:text="诊断信息加载中…"
+            android:textColor="#333333"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnCheckNow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="立即检测一次（诊断用）" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"

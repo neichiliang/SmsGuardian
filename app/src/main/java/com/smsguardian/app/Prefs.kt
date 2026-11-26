@@ -57,6 +57,28 @@ class Prefs(context: Context) {
         get() = sp.getLong(KEY_LAST_SMS_DATE, -1L)
         set(value) = sp.edit().putLong(KEY_LAST_SMS_DATE, value).apply()
 
+    // ===== 诊断信息：用于在设置页直观看到检测器是否在工作 =====
+
+    /** 已检测到的新短信累计数 */
+    var detectedCount: Int
+        get() = sp.getInt(KEY_DETECTED_COUNT, 0)
+        set(value) = sp.edit().putInt(KEY_DETECTED_COUNT, value).apply()
+
+    /** 最近一次检测到新短信的时间戳 */
+    var lastDetectTime: Long
+        get() = sp.getLong(KEY_LAST_DETECT_TIME, 0L)
+        set(value) = sp.edit().putLong(KEY_LAST_DETECT_TIME, value).apply()
+
+    /** 最近一次检测结果描述（命中/未命中关键字） */
+    var lastDetectResult: String
+        get() = sp.getString(KEY_LAST_DETECT_RESULT, "尚未检测到新短信") ?: "尚未检测到新短信"
+        set(value) = sp.edit().putString(KEY_LAST_DETECT_RESULT, value).apply()
+
+    /** 最近检测到的短信摘要 */
+    var lastDetectPreview: String
+        get() = sp.getString(KEY_LAST_DETECT_PREVIEW, "") ?: ""
+        set(value) = sp.edit().putString(KEY_LAST_DETECT_PREVIEW, value).apply()
+
     companion object {
         private const val PREFS_NAME = "sms_guardian_prefs"
         private const val KEY_SEND_KEY = "send_key"
@@ -66,5 +88,9 @@ class Prefs(context: Context) {
         private const val KEY_KEYWORDS = "keywords"
         private const val KEY_LAST_SMS_ID = "last_sms_id"
         private const val KEY_LAST_SMS_DATE = "last_sms_date"
+        private const val KEY_DETECTED_COUNT = "detected_count"
+        private const val KEY_LAST_DETECT_TIME = "last_detect_time"
+        private const val KEY_LAST_DETECT_RESULT = "last_detect_result"
+        private const val KEY_LAST_DETECT_PREVIEW = "last_detect_preview"
     }
 }

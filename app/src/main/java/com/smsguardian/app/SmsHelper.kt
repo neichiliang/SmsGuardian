@@ -38,6 +38,32 @@ object SmsHelper {
         }
     }
 
+    /**
+     * 查询 ID 大于 sinceId 的新短信，按时间升序返回（先到的先处理）。
+     * 用 _id 而非 date 判断新旧，避免短信延迟到达/时间错乱导致的漏报。
+     */
+    fun queryNewerThanId(cr: ContentResolver, sinceId: Long, limit: Int = 20): List<SmsItem> {
+        if (sinceId < 0) return emptyList()
+        val cursor = cr.query(
+            INBOX_URI, PROJECTION,
+            "_id > ?", arrayOf(sinceId.toString()),
+            "_id ASC"
+        ) ?: return emptyList()
+        return cursor.use { c ->
+            val list = ArrayList<SmsItem>(limit.coerceAtMost(50))
+            while (c.moveToNext() && list.size < limit) {
+                list.add(fromCursor(c))
+            }
+            list
+        }
+    }
+
+    /** 查询收件箱中最大的 _id，用于初始化基线 */
+    fun queryMaxId(cr: ContentResolver): Long {
+        val cursor = cr.query(INBOX_URI, arrayOf("_id"), null, null, "_id DESC") ?: return -1L
+        return cursor.use { c -> if (c.moveToFirst()) c.getLong(0) else -1L }
+    }
+
     private fun fromCursor(c: android.database.Cursor): SmsItem {
         fun str(name: String): String {
             val idx = c.getColumnIndex(name)
