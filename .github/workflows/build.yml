@@ -18,8 +18,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # GitHub 的 ubuntu-latest 运行器已预装 Android SDK 并接受好许可证，
+      # 无需 android-actions/setup-android（该 Action 会因旧的 tools 包已废弃而失败）。
+      - name: Verify Android SDK
+        run: |
+          echo "ANDROID_HOME=${ANDROID_HOME:-<unset>}"
+          if [ -d "${ANDROID_HOME:-/usr/local/lib/android/sdk}/platforms/android-34" ]; then
+            echo "Android SDK platform 34 is ready."
+          else
+            echo "Platform 34 not preinstalled; Gradle will download it automatically."
+          fi
 
       - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v3
