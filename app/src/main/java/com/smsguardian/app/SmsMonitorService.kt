@@ -15,10 +15,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
  * 常驻前台服务：双保险检测新短信。
@@ -107,7 +103,7 @@ class SmsMonitorService : Service() {
         }
     }
 
-    /** 检测比基线 ID 更新的所有短信（核心逻辑，ContentObserver 与轮询共用） */
+    /** 检测比基线 ID 更新的所有短信（兜底路径，与广播共用 SmsProcessor） */
     private fun checkNewSms() {
         if (!hasReadSmsPermission()) return
         val baseline = prefs.lastSmsId
@@ -120,41 +116,15 @@ class SmsMonitorService : Service() {
             maxId = sms.id
             prefs.lastSmsId = sms.id
             prefs.lastSmsDate = sms.date
-            prefs.detectedCount = prefs.detectedCount + 1
-            prefs.lastDetectTime = System.currentTimeMillis()
-            prefs.lastDetectPreview = "${sms.address}：${sms.body.take(40)}"
-
-            val matchedKeyword = prefs.getKeywords()
-                .firstOrNull { it.isNotBlank() && sms.body.contains(it, ignoreCase = true) }
-
-            if (matchedKeyword != null) {
-                prefs.lastDetectResult = "命中关键字「$matchedKeyword」→ 已触发提醒"
-                handleMatchedSms(sms.address, sms.body, matchedKeyword)
-            } else {
-                prefs.lastDetectResult = "检测到新短信，但未命中关键字"
-            }
+            SmsProcessor.process(
+                context = this,
+                address = sms.address,
+                body = sms.body,
+                dateMillis = sms.date,
+                source = "polling"
+            )
         }
-        Log.d(TAG, "检测到 ${newSmsList.size} 条新短信，基线更新到 $maxId")
-    }
-
-    /** 命中关键字 → 本地响铃振动 + 可选的微信推送 */
-    private fun handleMatchedSms(address: String, body: String, keyword: String) {
-        if (prefs.enableSound) {
-            notifier.notifyMatchedSms(address, body)
-        }
-
-        if (prefs.enableWechat && prefs.sendKey.isNotBlank()) {
-            val key = prefs.sendKey
-            val title = "关键字短信：$address"
-            val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-            val desp = "### 关键字短信提醒\n\n**命中关键字**：$keyword\n\n**发件人**：$address\n\n**时间**：$time\n\n**内容**：\n\n$body"
-            scope.launch {
-                val result = ServerChanClient.send(key, title, desp)
-                if (result.isFailure) {
-                    Log.w(TAG, "Server酱推送失败：${result.exceptionOrNull()?.message}")
-                }
-            }
-        }
+        Log.d(TAG, "轮询检测到 ${newSmsList.size} 条新短信，基线更新到 $maxId")
     }
 
     override fun onDestroy() {

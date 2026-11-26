@@ -79,6 +79,15 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_LAST_DETECT_PREVIEW, "") ?: ""
         set(value) = sp.edit().putString(KEY_LAST_DETECT_PREVIEW, value).apply()
 
+    /** 去重指纹：防止广播与服务轮询重复提醒同一条短信 */
+    var lastFingerprint: String
+        get() = sp.getString(KEY_LAST_FINGERPRINT, "") ?: ""
+        set(value) = sp.edit().putString(KEY_LAST_FINGERPRINT, value).apply()
+
+    var lastFingerprintTime: Long
+        get() = sp.getLong(KEY_LAST_FINGERPRINT_TIME, 0L)
+        set(value) = sp.edit().putLong(KEY_LAST_FINGERPRINT_TIME, value).apply()
+
     companion object {
         private const val PREFS_NAME = "sms_guardian_prefs"
         private const val KEY_SEND_KEY = "send_key"
@@ -92,5 +101,7 @@ class Prefs(context: Context) {
         private const val KEY_LAST_DETECT_TIME = "last_detect_time"
         private const val KEY_LAST_DETECT_RESULT = "last_detect_result"
         private const val KEY_LAST_DETECT_PREVIEW = "last_detect_preview"
+        private const val KEY_LAST_FINGERPRINT = "last_fingerprint"
+        private const val KEY_LAST_FINGERPRINT_TIME = "last_fingerprint_time"
     }
 }
